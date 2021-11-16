@@ -5,25 +5,46 @@ Description: >-
   a web server EC2 instance in the public subnet
   and a security group attached to this EC2 instance.
 
+Parameters:
+  InstanceType:
+    Type: String
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t2.small
+  ImageId:
+    Type: String
+    Default: ami-0fad7378adf284ce0
+  EbsVolumeSize:
+    Type: Number
+    Description: Volume size in GiB
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+  VpcCidrBlocks:
+    Type: CommaDelimitedList
+    Description: 'vpc, public subnet, private subnet'
+  SubnetAZ:
+    Type: AWS::EC2::AvailabilityZone::Name
+
 Resources:
   Vpc:
     Type: AWS::EC2::VPC
     Description: Section 3 activity VPC
     Properties:
-      CidrBlock: 10.0.0.0/16
+      CidrBlock: !Select [ 0, !Ref VpcCidrBlocks ]
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
         -
           Key: Name
-          Value: Section 3 Activity VPC
+          Value: !Sub '${AWS::StackName}-vpc'
 
   # Subnets ---
   PublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: eu-west-1a
-      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Ref SubnetAZ
+      CidrBlock: !Select [ 1, !Ref VpcCidrBlocks ]
       MapPublicIpOnLaunch: true
       VpcId: !Ref Vpc
       Tags:
@@ -34,8 +55,8 @@ Resources:
   PrivateSubnet:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: eu-west-1a
-      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Ref SubnetAZ
+      CidrBlock: !Select [ 2, !Ref VpcCidrBlocks ]
       VpcId: !Ref Vpc
       Tags:
         -
@@ -96,16 +117,17 @@ Resources:
       - InternetRoute
       - PublicSubnetRouteTableAssoc
     Properties:
-      InstanceType: t2.micro
+      InstanceType: !Ref InstanceType
       SubnetId: !Ref PublicSubnet
-      ImageId: ami-0fad7378adf284ce0
+      ImageId: !Ref ImageId
+      KeyName: !Ref KeyPairName
       SecurityGroupIds:
         - !Ref WebServerSecurityGroup
       BlockDeviceMappings:
         -
           DeviceName: /dev/sdf
           Ebs:
-            VolumeSize: 20
+            VolumeSize: !Ref EbsVolumeSize
             VolumeType: gp2
       Tags:
         -
@@ -132,3 +154,5 @@ Resources:
           IpProtocol: tcp
           FromPort: 22
           ToPort: 22
+
+
