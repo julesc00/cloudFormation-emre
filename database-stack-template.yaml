@@ -1,5 +1,30 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Sample database stack for the Parameters section
+Description: Sample database stack for the Metadata and Mappings section
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: Database Instance Settings
+        Parameters:
+          - DbClass
+          - MultiAZ
+          - AllocatedStorage
+          - MasterUsername
+          - MasterUserPassword
+      -
+        Label:
+          default: Network Settings
+        Parameters:
+          - VpcId
+          - DbSubnets
+          - SecurityGroupPorts
+    ParameterLabels:
+      DbClass:
+        default: Database Instance Class
+      AllocatedStorage:
+        default: Allocated Storage Size
+
 Parameters:
   DbClass:
     Type: String
@@ -47,6 +72,17 @@ Parameters:
     Type: AWS::EC2::VPC::Id
     Description: A valid VPC id in your AWS account
 Resources:
+  Bastion:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-02a39bdb8e8ee056a
+      InstanceType: t2.micro
+      SubnetId: !Select [ 0, !Ref DbSubnets ]
+      Tags:
+        -
+          Key: Name
+          Value: !Sub '${AWS::StackName}-Bastion'
+
   WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
